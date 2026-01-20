@@ -6,11 +6,12 @@ import { Lock } from 'lucide-react';
 import { THEMES } from '@/lib/constants';
 
 interface LoginScreenProps {
-  onLogin: (pin: string) => void;
+  onLogin: (pin: string, secret: string) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [pinCode, setPinCode] = useState('');
+  const [secretChar, setSecretChar] = useState('');
   const currentTheme = THEMES['modern'];
 
   const handleLogin = () => {
@@ -18,7 +19,11 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       alert('PIN 코드는 최소 4자리 이상이어야 합니다.');
       return;
     }
-    onLogin(pinCode);
+    if (secretChar.length === 0) {
+      alert('비밀문자를 입력해주세요.');
+      return;
+    }
+    onLogin(pinCode, secretChar);
   };
 
   return (
@@ -29,19 +34,34 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             <Lock size={40} />
           </div>
           <h1 className="text-2xl font-bold mb-2">예산 관리 앱</h1>
-          <p className={`text-sm ${currentTheme.accent}`}>PIN 코드로 로그인하세요</p>
+          <p className={`text-sm ${currentTheme.accent}`}>PIN + 비밀문자로 로그인</p>
         </div>
         
         <div className="space-y-4">
-          <input
-            type="password"
-            placeholder="PIN 코드 입력 (4자리 이상)"
-            value={pinCode}
-            onChange={(e) => setPinCode(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-            className={`w-full p-4 rounded-2xl border ${currentTheme.input} text-center text-2xl tracking-widest`}
-            maxLength={20}
-          />
+          <div>
+            <label className="text-sm font-medium mb-2 block">PIN 코드</label>
+            <input
+              type="password"
+              placeholder="4자리 이상 숫자"
+              value={pinCode}
+              onChange={(e) => setPinCode(e.target.value)}
+              className={`w-full p-4 rounded-2xl border ${currentTheme.input} text-center text-2xl tracking-widest`}
+              maxLength={20}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">비밀문자</label>
+            <input
+              type="password"
+              placeholder="한 글자 이상"
+              value={secretChar}
+              onChange={(e) => setSecretChar(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              className={`w-full p-4 rounded-2xl border ${currentTheme.input} text-center text-2xl tracking-widest`}
+              maxLength={20}
+            />
+          </div>
           
           <button
             onClick={handleLogin}
@@ -54,8 +74,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className={`p-4 rounded-2xl ${currentTheme.secondary} text-sm`}>
           <p className="font-semibold mb-2">💡 처음 사용하시나요?</p>
           <p className={currentTheme.accent}>
-            원하는 PIN 코드를 입력하고 로그인하면 자동으로 계정이 생성됩니다. 
-            이 PIN으로 어떤 기기에서든 로그인 가능합니다.
+            원하는 PIN 코드와 비밀문자를 입력하고 로그인하면 자동으로 계정이 생성됩니다. 
+            이 조합으로 어떤 기기에서든 로그인 가능합니다.
+          </p>
+        </div>
+
+        <div className={`p-4 rounded-2xl bg-blue-50 text-sm`}>
+          <p className="font-semibold mb-2 text-blue-900">🔒 보안 팁</p>
+          <p className="text-blue-700">
+            PIN: 본인만 아는 숫자 (예: 1234)<br/>
+            비밀문자: 추가 보안용 문자 (예: abc)
           </p>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { DayData } from '@/lib/types';
 
-export function useBudgetData(userPin: string, isLoggedIn: boolean) {
+export function useBudgetData(userKey: string, isLoggedIn: boolean) {
   const [data, setData] = useState<DayData[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [theme, setTheme] = useState('modern');
@@ -13,10 +13,10 @@ export function useBudgetData(userPin: string, isLoggedIn: boolean) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Firebase에서 데이터 로드
-  const loadFromCloud = async (pin: string) => {
+  const loadFromCloud = async (key: string) => {
     try {
       setSyncStatus('syncing');
-      const docRef = doc(db, 'budgets', pin);
+      const docRef = doc(db, 'budgets', key);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
@@ -36,10 +36,10 @@ export function useBudgetData(userPin: string, isLoggedIn: boolean) {
   };
 
   // Firebase에 데이터 저장
-  const saveToCloud = async (pin: string, dataToSave: any) => {
+  const saveToCloud = async (key: string, dataToSave: any) => {
     try {
       setSyncStatus('syncing');
-      const docRef = doc(db, 'budgets', pin);
+      const docRef = doc(db, 'budgets', key);
       await setDoc(docRef, dataToSave);
       setSyncStatus('synced');
     } catch (error) {
@@ -50,9 +50,9 @@ export function useBudgetData(userPin: string, isLoggedIn: boolean) {
 
   // 로그인 시 데이터 로드
   useEffect(() => {
-    const savedPin = localStorage.getItem('budgetPin');
-    if (savedPin) {
-      loadFromCloud(savedPin).then(() => {
+    const savedKey = localStorage.getItem('budgetKey');
+    if (savedKey) {
+      loadFromCloud(savedKey).then(() => {
         setIsLoading(false);
       });
     } else {
@@ -62,11 +62,11 @@ export function useBudgetData(userPin: string, isLoggedIn: boolean) {
 
   // 데이터 변경 시 자동 저장
   useEffect(() => {
-    if (isLoggedIn && userPin && !isLoading) {
+    if (isLoggedIn && userKey && !isLoading) {
       const dataToSave = { data, allTags, theme, font };
-      saveToCloud(userPin, dataToSave);
+      saveToCloud(userKey, dataToSave);
     }
-  }, [data, allTags, theme, font, isLoggedIn, userPin, isLoading]);
+  }, [data, allTags, theme, font, isLoggedIn, userKey, isLoading]);
 
   return {
     data,

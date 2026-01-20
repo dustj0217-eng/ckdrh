@@ -3,14 +3,15 @@
 
 import { useState } from 'react';
 import { Settings, Cloud } from 'lucide-react';
-import { useBudgetData } from '../hooks/useBudgetData';
+import { useBudgetData } from '@/hooks/useBudgetData';
 import { THEMES } from '@/lib/constants';
 import LoginScreen from '@/components/LoginScreen';
 import TabViews from '@/components/TabViews';
 
 export default function BudgetTracker() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userPin, setUserPin] = useState('');
+  const [userKey, setUserKey] = useState(''); // PIN_SECRET 조합
+  const [displayPin, setDisplayPin] = useState(''); // 화면에 표시할 PIN
   const [currentView, setCurrentView] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -30,16 +31,18 @@ export default function BudgetTracker() {
     isLoading,
     setIsLoading,
     loadFromCloud
-  } = useBudgetData(userPin, isLoggedIn);
+  } = useBudgetData(userKey, isLoggedIn);
 
   const currentTheme = THEMES[theme];
 
   // 로그인 핸들러
-  const handleLogin = async (pinCode: string) => {
+  const handleLogin = async (pin: string, secret: string) => {
     setIsLoading(true);
-    await loadFromCloud(pinCode);
-    localStorage.setItem('budgetPin', pinCode);
-    setUserPin(pinCode);
+    const combinedKey = `${pin}_${secret}`; // PIN과 비밀문자 조합
+    await loadFromCloud(combinedKey);
+    localStorage.setItem('budgetKey', combinedKey);
+    setUserKey(combinedKey);
+    setDisplayPin(pin); // 화면 표시용으로 PIN만 저장
     setIsLoggedIn(true);
     setIsLoading(false);
   };
@@ -47,9 +50,10 @@ export default function BudgetTracker() {
   // 로그아웃 핸들러
   const handleLogout = () => {
     if (confirm('로그아웃 하시겠습니까?')) {
-      localStorage.removeItem('budgetPin');
+      localStorage.removeItem('budgetKey');
       setIsLoggedIn(false);
-      setUserPin('');
+      setUserKey('');
+      setDisplayPin('');
       setData([]);
       setAllTags([]);
     }
@@ -108,7 +112,7 @@ export default function BudgetTracker() {
               {syncStatus === 'error' && '동기화 실패'}
             </span>
           </div>
-          <span>PIN: {userPin.replace(/./g, '•')}</span>
+          <span>PIN: {displayPin.replace(/./g, '•')}</span>
         </div>
       </div>
 
@@ -126,7 +130,7 @@ export default function BudgetTracker() {
           setTheme={setTheme}
           font={font}
           setFont={setFont}
-          userPin={userPin}
+          userPin={displayPin}
           onLogout={handleLogout}
         />
       </div>
