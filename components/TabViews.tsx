@@ -38,6 +38,7 @@ export default function TabViews({
   onLogout
 }: TabViewsProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [newItem, setNewItem] = useState({
     category: '식비',
     amount: '',
@@ -113,6 +114,73 @@ export default function TabViews({
     ));
   };
 
+  const startEdit = (item: Item) => {
+    setEditingId(item.id);
+    setNewItem({
+      category: item.category,
+      amount: item.amount.toString(),
+      name: item.name,
+      memo: item.memo,
+      time: item.time,
+      tags: item.tags.join(', ')
+    });
+    setShowAddForm(false);
+  };
+
+  const updateItem = () => {
+    if (!newItem.amount || !newItem.name || editingId === null) return;
+
+    const tags = newItem.tags.split(',').map(t => t.trim()).filter(t => t);
+    tags.forEach(tag => {
+      if (!allTags.includes(tag)) {
+        setAllTags([...allTags, tag]);
+      }
+    });
+
+    setData(data.map(d =>
+      d.date === selectedDate
+        ? {
+          ...d,
+          items: d.items.map(item =>
+            item.id === editingId
+              ? {
+                ...item,
+                category: newItem.category,
+                amount: parseInt(newItem.amount),
+                name: newItem.name,
+                memo: newItem.memo,
+                time: newItem.time,
+                tags: tags
+              }
+              : item
+          )
+        }
+        : d
+    ));
+
+    setEditingId(null);
+    setNewItem({
+      category: '식비',
+      amount: '',
+      name: '',
+      memo: '',
+      time: new Date().toTimeString().slice(0, 5),
+      tags: ''
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setNewItem({
+      category: '식비',
+      amount: '',
+      name: '',
+      memo: '',
+      time: new Date().toTimeString().slice(0, 5),
+      tags: ''
+    });
+  };
+
   const updateNote = (note: string) => {
     const existingDay = data.find(d => d.date === selectedDate);
 
@@ -184,7 +252,7 @@ export default function TabViews({
             </button>
           </div>
 
-          {showAddForm && (
+          {showAddForm && !editingId && (
             <div className={`mb-6 p-5 rounded-2xl border ${currentTheme.border} ${currentTheme.card} space-y-3 animate-slideDown`}>
               <div className="flex gap-2">
                 <select
@@ -240,6 +308,70 @@ export default function TabViews({
           )}
 
           <div className="space-y-3">
+            {editingId && (
+              <div className={`p-5 rounded-2xl border-2 border-blue-500 ${currentTheme.card} space-y-3 animate-slideDown`}>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-blue-600">항목 수정</h3>
+                  <button
+                    onClick={cancelEdit}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    취소
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={newItem.category}
+                    onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                    className={`flex-1 p-3 rounded-xl border ${currentTheme.input} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="time"
+                    value={newItem.time}
+                    onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
+                    className={`p-3 rounded-xl border ${currentTheme.input} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                  />
+                </div>
+                <input
+                  type="number"
+                  placeholder="금액"
+                  value={newItem.amount}
+                  onChange={(e) => setNewItem({ ...newItem, amount: e.target.value })}
+                  className={`w-full p-3 rounded-xl border ${currentTheme.input} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                />
+                <input
+                  type="text"
+                  placeholder="항목 이름"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                  className={`w-full p-3 rounded-xl border ${currentTheme.input} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                />
+                <textarea
+                  placeholder="메모"
+                  value={newItem.memo}
+                  onChange={(e) => setNewItem({ ...newItem, memo: e.target.value })}
+                  className={`w-full p-3 rounded-xl border ${currentTheme.input} min-h-20 resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                />
+                <input
+                  type="text"
+                  placeholder="태그 (콤마로 구분)"
+                  value={newItem.tags}
+                  onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })}
+                  className={`w-full p-3 rounded-xl border ${currentTheme.input} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                />
+                <button
+                  onClick={updateItem}
+                  className={`w-full py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 font-medium transition-all duration-200 active:scale-95`}
+                >
+                  수정 완료
+                </button>
+              </div>
+            )}
+            
             {todayData.items
               .sort((a, b) => a.time.localeCompare(b.time))
               .map((item, index) => {
@@ -247,8 +379,9 @@ export default function TabViews({
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 rounded-2xl border ${currentTheme.border} ${currentTheme.card} transition-all duration-200 hover:scale-[1.01] animate-slideIn`}
+                    className={`p-4 rounded-2xl border ${editingId === item.id ? 'border-blue-500 opacity-50' : currentTheme.border} ${currentTheme.card} transition-all duration-200 hover:scale-[1.01] animate-slideIn cursor-pointer`}
                     style={{ animationDelay: `${index * 50}ms` }}
+                    onClick={() => !editingId && startEdit(item)}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
@@ -275,7 +408,10 @@ export default function TabViews({
                       <div className="flex items-center gap-3 ml-4">
                         <span className="font-semibold whitespace-nowrap text-lg">{item.amount.toLocaleString()}원</span>
                         <button
-                          onClick={() => deleteItem(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteItem(item.id);
+                          }}
                           className="opacity-40 hover:opacity-100 transition-all duration-200 active:scale-90"
                         >
                           <X size={18} />
