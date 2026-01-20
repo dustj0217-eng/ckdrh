@@ -8,14 +8,12 @@ export default function MonthView({ data, selectedDate, theme }: any) {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
 
-  // 1일
-  const firstDay = new Date(year, month, 1);
-  // 달력 시작 (일요일)
-  const start = new Date(firstDay);
-  start.setDate(firstDay.getDate() - firstDay.getDay());
+  // 선택된 날짜가 속한 주의 일요일 찾기
+  const start = new Date(selectedDate);
+  start.setDate(selectedDate.getDate() - selectedDate.getDay());
 
-  // 6주 * 7일 = 42칸
-  const days = Array.from({ length: 42 }).map((_, i) => {
+  // 1주 * 7일 = 7칸
+  const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     return d;
@@ -37,11 +35,20 @@ export default function MonthView({ data, selectedDate, theme }: any) {
     return { income, expense, total: income - expense };
   };
 
+  // 주의 시작/끝 날짜 표시
+  const weekStart = days[0];
+  const weekEnd = days[6];
+
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-2xl font-bold">
-        {year}년 {month + 1}월
+        {weekStart.getMonth() === weekEnd.getMonth()
+          ? `${year}년 ${weekStart.getMonth() + 1}월`
+          : `${weekStart.getFullYear()}년 ${weekStart.getMonth() + 1}월 - ${weekEnd.getFullYear()}년 ${weekEnd.getMonth() + 1}월`}
       </h2>
+      <div className="text-sm opacity-60">
+        {weekStart.getMonth() + 1}월 {weekStart.getDate()}일 - {weekEnd.getMonth() + 1}월 {weekEnd.getDate()}일
+      </div>
 
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 text-center text-xs opacity-60">
@@ -54,21 +61,24 @@ export default function MonthView({ data, selectedDate, theme }: any) {
       <div className="grid grid-cols-7 gap-2">
         {days.map(date => {
           const { income, expense, total } = getDaySummary(date);
-          const isCurrentMonth = date.getMonth() === month;
+          const isToday = date.toDateString() === new Date().toDateString();
+          const isSelectedDate = date.toDateString() === selectedDate.toDateString();
 
           return (
             <div
               key={date.toISOString()}
               className={`
-                h-28 p-2 rounded-xl border text-xs
+                h-32 p-2 rounded-xl border text-xs
                 flex flex-col justify-between
                 ${currentTheme.card} ${currentTheme.border}
-                ${isCurrentMonth ? "" : "opacity-40"}
+                ${isSelectedDate ? "ring-2 ring-blue-500" : ""}
+                ${isToday ? "bg-blue-50 dark:bg-blue-950" : ""}
               `}
             >
               {/* 날짜 */}
               <div className="font-semibold">
                 {date.getDate()}
+                {isToday && <span className="ml-1 text-blue-500">●</span>}
               </div>
 
               {/* 금액 */}
