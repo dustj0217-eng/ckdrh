@@ -162,13 +162,34 @@ export default function BudgetTracker() {
         setAllTags(cloudData.allTags || []);
         setTheme(cloudData.theme || 'modern');
         setFont(cloudData.font || 'font-sans');
+      } else {
+        // 신규 사용자: 초기 데이터 저장
+        const initialData = { data: [], allTags: [], theme: 'modern', font: 'font-sans' };
+        await window.storage.set(`budget:${pin}`, JSON.stringify(initialData));
+        setData([]);
+        setAllTags([]);
+        setTheme('modern');
+        setFont('font-sans');
       }
       setSyncStatus('synced');
       return true;
     } catch (error) {
-      console.log('신규 사용자 또는 데이터 없음');
-      setSyncStatus('synced');
-      return true;
+      // 키가 없을 때도 신규 사용자로 처리
+      console.log('신규 사용자 생성:', error);
+      try {
+        const initialData = { data: [], allTags: [], theme: 'modern', font: 'font-sans' };
+        await window.storage.set(`budget:${pin}`, JSON.stringify(initialData));
+        setData([]);
+        setAllTags([]);
+        setTheme('modern');
+        setFont('font-sans');
+        setSyncStatus('synced');
+        return true;
+      } catch (saveError) {
+        console.error('초기 저장 실패:', saveError);
+        setSyncStatus('error');
+        return false;
+      }
     }
   };
 
