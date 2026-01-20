@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useMemo } from 'react';
 import { Plus, X, TrendingUp, Calendar } from 'lucide-react';
 
