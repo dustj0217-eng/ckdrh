@@ -3,6 +3,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Tag, Settings, ShoppingBag, Coffee, Bus, Film, Home, Package, Lock, LogOut, Cloud } from 'lucide-react';
 
+// Window storage API 타입 정의
+declare global {
+  interface Window {
+    storage: {
+      get: (key: string, shared?: boolean) => Promise<{ key: string; value: string; shared: boolean } | null>;
+      set: (key: string, value: string, shared?: boolean) => Promise<{ key: string; value: string; shared: boolean } | null>;
+      delete: (key: string, shared?: boolean) => Promise<{ key: string; deleted: boolean; shared: boolean } | null>;
+      list: (prefix?: string, shared?: boolean) => Promise<{ keys: string[]; prefix?: string; shared: boolean } | null>;
+    };
+  }
+}
+
 interface Item {
   id: number;
   category: string;
