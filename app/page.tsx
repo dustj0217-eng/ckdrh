@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 
 interface Item {
@@ -18,31 +18,26 @@ interface DayData {
 
 const CATEGORIES = ['식비', '교통', '쇼핑', '문화', '공과금', '기타'];
 
-const DUMMY_DATA: DayData[] = [
-  {
-    date: '2026-01-20',
-    items: [
-      { id: 1, category: '식비', amount: 12000, reason: '점심 김치찌개' },
-      { id: 2, category: '교통', amount: 2800, reason: '지하철' },
-      { id: 3, category: '쇼핑', amount: 35000, reason: '티셔츠' }
-    ],
-    dailyNote: '오늘은 쇼핑을 좀 했다. 필요한 거였으니 괜찮아.'
-  },
-  {
-    date: '2026-01-19',
-    items: [
-      { id: 4, category: '식비', amount: 15000, reason: '저녁 회식' },
-      { id: 5, category: '교통', amount: 3000, reason: '택시' }
-    ],
-    dailyNote: '친구들이랑 저녁 먹었음.'
-  }
-];
-
 export default function BudgetTracker() {
   const [selectedDate, setSelectedDate] = useState('2026-01-20');
-  const [data, setData] = useState<DayData[]>(DUMMY_DATA);
+  const [data, setData] = useState<DayData[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({ category: '식비', amount: '', reason: '' });
+
+  // 초기 로드
+  useEffect(() => {
+    const saved = localStorage.getItem('budgetData');
+    if (saved) {
+      setData(JSON.parse(saved));
+    }
+  }, []);
+
+  // data 변경될 때마다 저장
+  useEffect(() => {
+    if (data.length > 0) {
+      localStorage.setItem('budgetData', JSON.stringify(data));
+    }
+  }, [data]);
 
   const todayData = data.find(d => d.date === selectedDate) || { date: selectedDate, items: [], dailyNote: '' };
 
