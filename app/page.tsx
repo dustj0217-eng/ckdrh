@@ -720,7 +720,7 @@ export default function BudgetTracker() {
               <div className="space-y-3">
                 <div className={`p-4 rounded-2xl ${currentTheme.secondary}`}>
                   <div className="text-sm mb-2">현재 PIN 코드</div>
-                  <div className="font-mono text-2xl tracking-widest">{userPin.replace(/./g, '•')}</div>
+                  <div className="font-mono text-2xl tracking-widest">{userPin}</div>
                 </div>
                 
                 <button
