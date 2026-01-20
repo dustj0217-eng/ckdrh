@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Tag, Settings, ShoppingBag, Coffee, Bus, Film, Home, Package } from 'lucide-react';
+import { Plus, X, Tag, Settings, ShoppingBag, Coffee, Bus, Film, Home, Package, Lock, LogOut, Cloud } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -114,6 +114,12 @@ const FONTS = [
 ];
 
 export default function BudgetTracker() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [pinCode, setPinCode] = useState('');
+  const [userPin, setUserPin] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+  
   const [currentView, setCurrentView] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -133,37 +139,85 @@ export default function BudgetTracker() {
   const [theme, setTheme] = useState('modern');
   const [font, setFont] = useState('font-sans');
 
+  // 클라우드에서 데이터 로드
+  const loadFromCloud = async (pin: string) => {
+    try {
+      setSyncStatus('syncing');
+      const result = await window.storage.get(`budget:${pin}`);
+      if (result && result.value) {
+        const cloudData = JSON.parse(result.value);
+        setData(cloudData.data || []);
+        setAllTags(cloudData.allTags || []);
+        setTheme(cloudData.theme || 'modern');
+        setFont(cloudData.font || 'font-sans');
+      }
+      setSyncStatus('synced');
+      return true;
+    } catch (error) {
+      console.log('신규 사용자 또는 데이터 없음');
+      setSyncStatus('synced');
+      return true;
+    }
+  };
+
+  // 클라우드에 데이터 저장
+  const saveToCloud = async (pin: string, dataToSave: any) => {
+    try {
+      setSyncStatus('syncing');
+      await window.storage.set(`budget:${pin}`, JSON.stringify(dataToSave));
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('저장 실패:', error);
+      setSyncStatus('error');
+    }
+  };
+
+  // 로그인 체크
   useEffect(() => {
-    const saved = localStorage.getItem('budgetData');
-    const savedTags = localStorage.getItem('budgetTags');
-    const savedTheme = localStorage.getItem('budgetTheme');
-    const savedFont = localStorage.getItem('budgetFont');
-    
-    if (saved) setData(JSON.parse(saved));
-    if (savedTags) setAllTags(JSON.parse(savedTags));
-    if (savedTheme) setTheme(savedTheme);
-    if (savedFont) setFont(savedFont);
+    const savedPin = localStorage.getItem('budgetPin');
+    if (savedPin) {
+      setUserPin(savedPin);
+      loadFromCloud(savedPin).then(() => {
+        setIsLoggedIn(true);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
+  // 데이터 변경 시 자동 저장
   useEffect(() => {
-    if (data.length > 0) {
-      localStorage.setItem('budgetData', JSON.stringify(data));
+    if (isLoggedIn && userPin && !isLoading) {
+      const dataToSave = { data, allTags, theme, font };
+      saveToCloud(userPin, dataToSave);
     }
-  }, [data]);
+  }, [data, allTags, theme, font, isLoggedIn, userPin, isLoading]);
 
-  useEffect(() => {
-    if (allTags.length > 0) {
-      localStorage.setItem('budgetTags', JSON.stringify(allTags));
+  const handleLogin = async () => {
+    if (pinCode.length < 4) {
+      alert('PIN 코드는 최소 4자리 이상이어야 합니다.');
+      return;
     }
-  }, [allTags]);
+    
+    setIsLoading(true);
+    await loadFromCloud(pinCode);
+    localStorage.setItem('budgetPin', pinCode);
+    setUserPin(pinCode);
+    setIsLoggedIn(true);
+    setIsLoading(false);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('budgetTheme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem('budgetFont', font);
-  }, [font]);
+  const handleLogout = () => {
+    if (confirm('로그아웃 하시겠습니까?')) {
+      localStorage.removeItem('budgetPin');
+      setIsLoggedIn(false);
+      setUserPin('');
+      setPinCode('');
+      setData([]);
+      setAllTags([]);
+    }
+  };
 
   const currentTheme = THEMES[theme];
 
@@ -279,6 +333,61 @@ export default function BudgetTracker() {
 
   const dailyTotal = todayData.items.reduce((sum, item) => sum + item.amount, 0);
 
+  // 로그인 화면
+  if (isLoading) {
+    return (
+      <div className={`max-w-md mx-auto min-h-screen ${currentTheme.bg} ${currentTheme.text} flex items-center justify-center`}>
+        <div className="text-center">
+          <Cloud className="animate-pulse mx-auto mb-4" size={48} />
+          <p>데이터 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className={`max-w-md mx-auto min-h-screen ${currentTheme.bg} ${currentTheme.text} flex items-center justify-center p-4`}>
+        <div className={`w-full ${currentTheme.card} p-8 rounded-3xl border ${currentTheme.border} space-y-6`}>
+          <div className="text-center">
+            <div className={`w-20 h-20 ${currentTheme.primary} rounded-full flex items-center justify-center mx-auto mb-4`}>
+              <Lock size={40} />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">예산 관리 앱</h1>
+            <p className={`text-sm ${currentTheme.accent}`}>PIN 코드로 로그인하세요</p>
+          </div>
+          
+          <div className="space-y-4">
+            <input
+              type="password"
+              placeholder="PIN 코드 입력 (4자리 이상)"
+              value={pinCode}
+              onChange={(e) => setPinCode(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              className={`w-full p-4 rounded-2xl border ${currentTheme.input} text-center text-2xl tracking-widest`}
+              maxLength={20}
+            />
+            
+            <button
+              onClick={handleLogin}
+              className={`w-full py-4 rounded-2xl ${currentTheme.primary} ${currentTheme.primaryHover} font-semibold transition-all duration-200 active:scale-95`}
+            >
+              로그인
+            </button>
+          </div>
+
+          <div className={`p-4 rounded-2xl ${currentTheme.secondary} text-sm`}>
+            <p className="font-semibold mb-2">💡 처음 사용하시나요?</p>
+            <p className={currentTheme.accent}>
+              원하는 PIN 코드를 입력하고 로그인하면 자동으로 계정이 생성됩니다. 
+              이 PIN으로 어떤 기기에서든 로그인 가능합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`max-w-md mx-auto min-h-screen ${currentTheme.bg} ${currentTheme.text} ${font} transition-colors duration-300`}>
       <div className={`border-b ${currentTheme.border} ${currentTheme.card} sticky top-0 z-10`}>
@@ -302,6 +411,18 @@ export default function BudgetTracker() {
             </button>
           ))}
         </div>
+        
+        <div className={`px-4 py-2 text-xs ${currentTheme.accent} flex items-center justify-between`}>
+          <div className="flex items-center gap-2">
+            <Cloud size={12} />
+            <span>
+              {syncStatus === 'syncing' && '동기화 중...'}
+              {syncStatus === 'synced' && '동기화 완료'}
+              {syncStatus === 'error' && '동기화 실패'}
+            </span>
+          </div>
+          <span>PIN: {userPin.replace(/./g, '•')}</span>
+        </div>
       </div>
 
       <div className="animate-fadeIn">
@@ -311,7 +432,7 @@ export default function BudgetTracker() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className={`w-full p-4 rounded-2xl border ${currentTheme.input} ${currentTheme.text} text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${currentTheme.primary.split(' ')[0].replace('bg-', '')}`}
+              className={`w-full p-4 rounded-2xl border ${currentTheme.input} ${currentTheme.text} text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2`}
             />
 
             <div>
@@ -452,7 +573,7 @@ export default function BudgetTracker() {
           <div className="p-4 space-y-6">
             <h2 className="text-2xl font-bold">주간 통계</h2>
             
-            <div className="p-6 rounded-2xl ${currentTheme.card} border ${currentTheme.border}">
+            <div className={`p-6 rounded-2xl ${currentTheme.card} border ${currentTheme.border}`}>
               <div className="flex items-end justify-between h-48 gap-3">
                 {weekData.map((day, index) => {
                   const maxAmount = Math.max(...weekData.map(d => d.total));
@@ -551,7 +672,7 @@ export default function BudgetTracker() {
                     key={key}
                     onClick={() => setTheme(key)}
                     className={`w-full p-5 rounded-2xl border ${currentTheme.border} ${currentTheme.card} text-left transition-all duration-200 active:scale-95 ${
-                      theme === key ? `ring-2 ring-offset-2 ring-${currentTheme.primary.split(' ')[0].replace('bg-', '')}` : ''
+                      theme === key ? `ring-2 ring-offset-2` : ''
                     }`}
                   >
                     <div className="font-semibold text-lg mb-3">{t.name}</div>
@@ -573,12 +694,48 @@ export default function BudgetTracker() {
                     key={f.value}
                     onClick={() => setFont(f.value)}
                     className={`w-full p-5 rounded-2xl border ${currentTheme.border} ${currentTheme.card} text-left ${f.value} transition-all duration-200 active:scale-95 ${
-                      font === f.value ? `ring-2 ring-offset-2 ring-${currentTheme.primary.split(' ')[0].replace('bg-', '')}` : ''
+                      font === f.value ? `ring-2 ring-offset-2` : ''
                     }`}
                   >
                     <div className="font-semibold text-lg">{f.name}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-4">계정</h3>
+              <div className="space-y-3">
+                <div className={`p-4 rounded-2xl ${currentTheme.secondary}`}>
+                  <div className="text-sm mb-2">현재 PIN 코드</div>
+                  <div className="font-mono text-2xl tracking-widest">{userPin.replace(/./g, '•')}</div>
+                </div>
+                
+                <button
+                  onClick={handleLogout}
+                  className={`w-full p-4 rounded-2xl bg-red-100 text-red-700 text-left transition-all duration-200 active:scale-95 flex items-center gap-3`}
+                >
+                  <LogOut size={20} />
+                  <div>
+                    <div className="font-semibold">로그아웃</div>
+                    <div className="text-sm text-red-600">다른 계정으로 전환</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl ${currentTheme.secondary}`}>
+              <div className="text-sm">
+                <div className="font-semibold mb-2 flex items-center gap-2">
+                  <Cloud size={16} />
+                  클라우드에 저장된 데이터
+                </div>
+                <div className={currentTheme.accent}>
+                  • 총 {data.length}일의 기록<br/>
+                  • {data.reduce((sum, d) => sum + d.items.length, 0)}개의 지출 항목<br/>
+                  • {allTags.length}개의 태그<br/>
+                  • 모든 기기에서 자동 동기화
+                </div>
               </div>
             </div>
           </div>
