@@ -7,40 +7,70 @@ export default function WeekView({ data, selectedDate, theme }: any) {
   const currentTheme = THEMES[theme];
   const weekData = useWeeklyStats(data, selectedDate);
 
-  const max = Math.max(...weekData.map(d => d.total));
-
   return (
     <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold">주간 통계</h2>
+      <h2 className="text-2xl font-bold">주간 내역</h2>
 
-      <div className={`p-6 rounded-2xl ${currentTheme.card} border ${currentTheme.border}`}>
-        <div className="flex items-end justify-between h-48 gap-3">
-          {weekData.map(day => {
-            const height = max > 0 ? (day.total / max) * 100 : 0;
-
-            return (
-              <div key={day.date} className="flex-1 flex flex-col items-center">
-                <div className="h-40 w-full flex items-end">
-                  <div
-                    className={`${currentTheme.primary} w-full rounded-t-xl`}
-                    style={{ height: `${height}%` }}
-                  />
-                </div>
-                <div className="text-xs mt-2">
-                  {new Date(day.date).getDate()}일
-                </div>
-                <div className={`text-xs ${currentTheme.accent}`}>
-                  {day.total ? `${(day.total / 1000).toFixed(0)}k` : '-'}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* 요일 헤더 */}
+      <div className="grid grid-cols-7 text-center text-xs opacity-60">
+        {['일', '월', '화', '수', '목', '금', '토'].map(d => (
+          <div key={d}>{d}</div>
+        ))}
       </div>
 
-      <div className={`p-6 rounded-2xl ${currentTheme.card} border ${currentTheme.border}`}>
-        <div className="flex justify-between">
-          <span className="text-lg">주간 총액</span>
+      {/* 캘린더 영역 */}
+      <div
+        className={`
+          grid grid-cols-7 gap-2
+          p-3 rounded-2xl
+          ${currentTheme.card} border ${currentTheme.border}
+        `}
+      >
+        {weekData.map(day => {
+          const dateObj = new Date(day.date);
+          const isToday =
+            new Date().toDateString() === dateObj.toDateString();
+
+          return (
+            <div
+              key={day.date}
+              className={`
+                h-24 p-2 rounded-xl border
+                flex flex-col justify-between
+                ${currentTheme.card}
+                ${isToday ? currentTheme.primary : ''}
+              `}
+            >
+              {/* 날짜 */}
+              <div className="text-xs font-semibold">
+                {dateObj.getDate()}
+              </div>
+
+              {/* 금액 */}
+              <div className="space-y-1">
+                <div className="text-[11px] text-red-500">
+                  {day.total < 0
+                    ? `${Math.abs(day.total).toLocaleString()}`
+                    : ''}
+                </div>
+
+                <div className="text-[11px] text-blue-500">
+                  {day.total > 0
+                    ? `${day.total.toLocaleString()}`
+                    : ''}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 주간 합계 */}
+      <div
+        className={`p-6 rounded-2xl ${currentTheme.card} border ${currentTheme.border}`}
+      >
+        <div className="flex justify-between items-center">
+          <span className="text-lg">주간 합계</span>
           <span className="text-3xl font-bold">
             {weekData.reduce((s, d) => s + d.total, 0).toLocaleString()}원
           </span>
