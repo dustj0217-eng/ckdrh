@@ -7,7 +7,8 @@ interface Item {
   id: number;
   category: string;
   amount: number;
-  reason: string;
+  name: string;      // reason → name으로 변경
+  memo: string;      // 새로 추가
   time: string;
   tags: string[];
 }
@@ -31,7 +32,8 @@ export default function BudgetTracker() {
   const [newItem, setNewItem] = useState({ 
     category: '식비', 
     amount: '', 
-    reason: '',
+    name: '',          // reason → name
+    memo: '',          // 새로 추가
     time: new Date().toTimeString().slice(0, 5),
     tags: '' 
   });
@@ -63,7 +65,7 @@ export default function BudgetTracker() {
   const todayData = data.find(d => d.date === selectedDate) || { date: selectedDate, items: [], dailyNote: '' };
 
   const addItem = () => {
-    if (!newItem.amount || !newItem.reason) return;
+    if (!newItem.amount || !newItem.name) return;  // reason → name
     
     const tags = newItem.tags.split(',').map(t => t.trim()).filter(t => t);
     tags.forEach(tag => {
@@ -81,7 +83,8 @@ export default function BudgetTracker() {
               id: Date.now(), 
               category: newItem.category, 
               amount: parseInt(newItem.amount), 
-              reason: newItem.reason,
+              name: newItem.name,        // reason → name
+              memo: newItem.memo,        // 새로 추가
               time: newItem.time,
               tags: tags
             }] }
@@ -94,7 +97,8 @@ export default function BudgetTracker() {
           id: Date.now(), 
           category: newItem.category, 
           amount: parseInt(newItem.amount), 
-          reason: newItem.reason,
+          name: newItem.name,        // reason → name
+          memo: newItem.memo,        // 새로 추가
           time: newItem.time,
           tags: tags
         }],
@@ -105,7 +109,8 @@ export default function BudgetTracker() {
     setNewItem({ 
       category: '식비', 
       amount: '', 
-      reason: '',
+      name: '',
+      memo: '',
       time: new Date().toTimeString().slice(0, 5),
       tags: '' 
     });
@@ -244,10 +249,16 @@ export default function BudgetTracker() {
                 />
                 <input
                   type="text"
-                  placeholder="사유"
-                  value={newItem.reason}
-                  onChange={(e) => setNewItem({ ...newItem, reason: e.target.value })}
+                  placeholder="항목 이름"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                   className="w-full p-2 border border-gray-300"
+                />
+                <textarea
+                  placeholder="메모"
+                  value={newItem.memo}
+                  onChange={(e) => setNewItem({ ...newItem, memo: e.target.value })}
+                  className="w-full p-2 border border-gray-300 min-h-20 resize-none"
                 />
                 <input
                   type="text"
@@ -276,7 +287,8 @@ export default function BudgetTracker() {
                         <span className="text-xs px-2 py-1 border border-gray-300">{item.category}</span>
                         <span className="text-xs text-gray-500">{item.time}</span>
                       </div>
-                      <div className="text-sm">{item.reason}</div>
+                      <div className="text-sm font-medium">{item.name}</div>
+                      {item.memo && <div className="text-xs text-gray-600 mt-1">{item.memo}</div>}
                       {item.tags && item.tags.length > 0 && (
                         <div className="flex gap-1 mt-2">
                           {item.tags.map((tag, idx) => (
