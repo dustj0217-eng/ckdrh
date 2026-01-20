@@ -1,14 +1,14 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Tag } from 'lucide-react';
+import { Plus, X, Tag, Settings, Palette } from 'lucide-react';
 
 interface Item {
   id: number;
   category: string;
   amount: number;
-  name: string;      // reason → name으로 변경
-  memo: string;      // 새로 추가
+  name: string;
+  memo: string;
   time: string;
   tags: string[];
 }
@@ -19,7 +19,57 @@ interface DayData {
   dailyNote: string;
 }
 
+interface ThemeConfig {
+  name: string;
+  bg: string;
+  text: string;
+  primary: string;
+  secondary: string;
+  border: string;
+  accent: string;
+  card: string;
+}
+
 const CATEGORIES = ['식비', '교통', '쇼핑', '문화', '공과금', '기타'];
+
+const THEMES: Record<string, ThemeConfig> = {
+  modern: {
+    name: '모던',
+    bg: 'bg-white',
+    text: 'text-gray-900',
+    primary: 'bg-black text-white',
+    secondary: 'bg-gray-100 text-gray-700',
+    border: 'border-gray-300',
+    accent: 'text-gray-500',
+    card: 'bg-white border-gray-200'
+  },
+  nightsky: {
+    name: '밤하늘',
+    bg: 'bg-slate-900',
+    text: 'text-slate-100',
+    primary: 'bg-indigo-600 text-white',
+    secondary: 'bg-slate-800 text-slate-200',
+    border: 'border-slate-700',
+    accent: 'text-indigo-400',
+    card: 'bg-slate-800 border-slate-700'
+  },
+  lovelypink: {
+    name: '러블리핑크',
+    bg: 'bg-pink-50',
+    text: 'text-pink-900',
+    primary: 'bg-pink-500 text-white',
+    secondary: 'bg-pink-100 text-pink-700',
+    border: 'border-pink-200',
+    accent: 'text-pink-600',
+    card: 'bg-white border-pink-200'
+  }
+};
+
+const FONTS = [
+  { name: '기본', value: 'font-sans' },
+  { name: '고딕', value: 'font-mono' },
+  { name: '세리프', value: 'font-serif' }
+];
 
 export default function BudgetTracker() {
   const [currentView, setCurrentView] = useState('daily');
@@ -32,22 +82,25 @@ export default function BudgetTracker() {
   const [newItem, setNewItem] = useState({ 
     category: '식비', 
     amount: '', 
-    name: '',          // reason → name
-    memo: '',          // 새로 추가
+    name: '',
+    memo: '',
     time: new Date().toTimeString().slice(0, 5),
     tags: '' 
   });
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [theme, setTheme] = useState('modern');
+  const [font, setFont] = useState('font-sans');
 
   useEffect(() => {
     const saved = localStorage.getItem('budgetData');
     const savedTags = localStorage.getItem('budgetTags');
-    if (saved) {
-      setData(JSON.parse(saved));
-    }
-    if (savedTags) {
-      setAllTags(JSON.parse(savedTags));
-    }
+    const savedTheme = localStorage.getItem('budgetTheme');
+    const savedFont = localStorage.getItem('budgetFont');
+    
+    if (saved) setData(JSON.parse(saved));
+    if (savedTags) setAllTags(JSON.parse(savedTags));
+    if (savedTheme) setTheme(savedTheme);
+    if (savedFont) setFont(savedFont);
   }, []);
 
   useEffect(() => {
@@ -62,10 +115,20 @@ export default function BudgetTracker() {
     }
   }, [allTags]);
 
+  useEffect(() => {
+    localStorage.setItem('budgetTheme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('budgetFont', font);
+  }, [font]);
+
+  const currentTheme = THEMES[theme];
+
   const todayData = data.find(d => d.date === selectedDate) || { date: selectedDate, items: [], dailyNote: '' };
 
   const addItem = () => {
-    if (!newItem.amount || !newItem.name) return;  // reason → name
+    if (!newItem.amount || !newItem.name) return;
     
     const tags = newItem.tags.split(',').map(t => t.trim()).filter(t => t);
     tags.forEach(tag => {
@@ -83,8 +146,8 @@ export default function BudgetTracker() {
               id: Date.now(), 
               category: newItem.category, 
               amount: parseInt(newItem.amount), 
-              name: newItem.name,        // reason → name
-              memo: newItem.memo,        // 새로 추가
+              name: newItem.name,
+              memo: newItem.memo,
               time: newItem.time,
               tags: tags
             }] }
@@ -97,8 +160,8 @@ export default function BudgetTracker() {
           id: Date.now(), 
           category: newItem.category, 
           amount: parseInt(newItem.amount), 
-          name: newItem.name,        // reason → name
-          memo: newItem.memo,        // 새로 추가
+          name: newItem.name,
+          memo: newItem.memo,
           time: newItem.time,
           tags: tags
         }],
@@ -175,26 +238,32 @@ export default function BudgetTracker() {
   const dailyTotal = todayData.items.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen">
-      <div className="border-b">
+    <div className={`max-w-md mx-auto min-h-screen ${currentTheme.bg} ${currentTheme.text} ${font}`}>
+      <div className={`border-b ${currentTheme.border}`}>
         <div className="flex">
           <button
             onClick={() => setCurrentView('daily')}
-            className={`flex-1 py-4 text-sm ${currentView === 'daily' ? 'border-b-2 border-black font-medium' : 'text-gray-500'}`}
+            className={`flex-1 py-4 text-sm ${currentView === 'daily' ? `border-b-2 ${currentTheme.accent} font-medium` : 'opacity-50'}`}
           >
             오늘
           </button>
           <button
             onClick={() => setCurrentView('week')}
-            className={`flex-1 py-4 text-sm ${currentView === 'week' ? 'border-b-2 border-black font-medium' : 'text-gray-500'}`}
+            className={`flex-1 py-4 text-sm ${currentView === 'week' ? `border-b-2 ${currentTheme.accent} font-medium` : 'opacity-50'}`}
           >
             주간
           </button>
           <button
             onClick={() => setCurrentView('month')}
-            className={`flex-1 py-4 text-sm ${currentView === 'month' ? 'border-b-2 border-black font-medium' : 'text-gray-500'}`}
+            className={`flex-1 py-4 text-sm ${currentView === 'month' ? `border-b-2 ${currentTheme.accent} font-medium` : 'opacity-50'}`}
           >
             월간
+          </button>
+          <button
+            onClick={() => setCurrentView('settings')}
+            className={`flex-1 py-4 text-sm ${currentView === 'settings' ? `border-b-2 ${currentTheme.accent} font-medium` : 'opacity-50'}`}
+          >
+            <Settings size={18} className="mx-auto" />
           </button>
         </div>
       </div>
@@ -206,7 +275,7 @@ export default function BudgetTracker() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full p-3 border border-gray-300 text-base"
+              className={`w-full p-3 border ${currentTheme.border} text-base ${currentTheme.card}`}
             />
           </div>
 
@@ -215,19 +284,19 @@ export default function BudgetTracker() {
               <h2 className="text-lg font-medium">지출 내역</h2>
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="p-2 border border-black hover:bg-black hover:text-white transition-colors"
+                className={`p-2 border ${currentTheme.border} hover:${currentTheme.primary} transition-colors`}
               >
                 <Plus size={20} />
               </button>
             </div>
 
             {showAddForm && (
-              <div className="mb-4 p-4 border border-gray-300 space-y-3">
+              <div className={`mb-4 p-4 border ${currentTheme.border} ${currentTheme.card} space-y-3`}>
                 <div className="flex gap-2">
                   <select
                     value={newItem.category}
                     onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                    className="flex-1 p-2 border border-gray-300"
+                    className={`flex-1 p-2 border ${currentTheme.border} ${currentTheme.card}`}
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -237,7 +306,7 @@ export default function BudgetTracker() {
                     type="time"
                     value={newItem.time}
                     onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
-                    className="p-2 border border-gray-300"
+                    className={`p-2 border ${currentTheme.border} ${currentTheme.card}`}
                   />
                 </div>
                 <input
@@ -245,31 +314,31 @@ export default function BudgetTracker() {
                   placeholder="금액"
                   value={newItem.amount}
                   onChange={(e) => setNewItem({ ...newItem, amount: e.target.value })}
-                  className="w-full p-2 border border-gray-300"
+                  className={`w-full p-2 border ${currentTheme.border} ${currentTheme.card}`}
                 />
                 <input
                   type="text"
-                  placeholder="항목 이름"
+                  placeholder="항목 이름 (예: 김치찌개)"
                   value={newItem.name}
                   onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                  className="w-full p-2 border border-gray-300"
+                  className={`w-full p-2 border ${currentTheme.border} ${currentTheme.card}`}
                 />
                 <textarea
-                  placeholder="메모"
+                  placeholder="메모 (예: 솔직히 좀 비싸긴 했는데 든든한 한 끼가 먹고 싶었음)"
                   value={newItem.memo}
                   onChange={(e) => setNewItem({ ...newItem, memo: e.target.value })}
-                  className="w-full p-2 border border-gray-300 min-h-20 resize-none"
+                  className={`w-full p-2 border ${currentTheme.border} ${currentTheme.card} min-h-20 resize-none`}
                 />
                 <input
                   type="text"
                   placeholder="태그 (콤마로 구분: 외식, 데이트)"
                   value={newItem.tags}
                   onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })}
-                  className="w-full p-2 border border-gray-300"
+                  className={`w-full p-2 border ${currentTheme.border} ${currentTheme.card}`}
                 />
                 <button
                   onClick={addItem}
-                  className="w-full py-2 bg-black text-white hover:bg-gray-800"
+                  className={`w-full py-2 ${currentTheme.primary}`}
                 >
                   추가
                 </button>
@@ -280,19 +349,19 @@ export default function BudgetTracker() {
               {todayData.items
                 .sort((a, b) => a.time.localeCompare(b.time))
                 .map(item => (
-                <div key={item.id} className="p-3 border border-gray-200">
+                <div key={item.id} className={`p-3 border ${currentTheme.border} ${currentTheme.card}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs px-2 py-1 border border-gray-300">{item.category}</span>
-                        <span className="text-xs text-gray-500">{item.time}</span>
+                        <span className={`text-xs px-2 py-1 border ${currentTheme.border}`}>{item.category}</span>
+                        <span className={`text-xs ${currentTheme.accent}`}>{item.time}</span>
                       </div>
                       <div className="text-sm font-medium">{item.name}</div>
-                      {item.memo && <div className="text-xs text-gray-600 mt-1">{item.memo}</div>}
+                      {item.memo && <div className={`text-xs ${currentTheme.accent} mt-1`}>{item.memo}</div>}
                       {item.tags && item.tags.length > 0 && (
-                        <div className="flex gap-1 mt-2">
+                        <div className="flex gap-1 mt-2 flex-wrap">
                           {item.tags.map((tag, idx) => (
-                            <span key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 flex items-center gap-1">
+                            <span key={idx} className={`text-xs px-2 py-1 ${currentTheme.secondary} flex items-center gap-1`}>
                               <Tag size={10} />
                               {tag}
                             </span>
@@ -300,11 +369,11 @@ export default function BudgetTracker() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">{item.amount.toLocaleString()}원</span>
+                    <div className="flex items-center gap-3 ml-3">
+                      <span className="font-medium whitespace-nowrap">{item.amount.toLocaleString()}원</span>
                       <button
                         onClick={() => deleteItem(item.id)}
-                        className="text-gray-400 hover:text-black"
+                        className="opacity-50 hover:opacity-100"
                       >
                         <X size={16} />
                       </button>
@@ -314,7 +383,7 @@ export default function BudgetTracker() {
               ))}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-300">
+            <div className={`mt-4 pt-4 border-t ${currentTheme.border}`}>
               <div className="flex justify-between items-center">
                 <span className="text-lg font-medium">총액</span>
                 <span className="text-2xl font-bold">{dailyTotal.toLocaleString()}원</span>
@@ -328,7 +397,7 @@ export default function BudgetTracker() {
               value={todayData.dailyNote}
               onChange={(e) => updateNote(e.target.value)}
               placeholder="오늘 하루 소비는 어땠나요?"
-              className="w-full p-3 border border-gray-300 min-h-24 resize-none"
+              className={`w-full p-3 border ${currentTheme.border} ${currentTheme.card} min-h-24 resize-none`}
             />
           </div>
         </div>
@@ -348,14 +417,14 @@ export default function BudgetTracker() {
                   <div key={day.date} className="flex-1 flex flex-col items-center">
                     <div className="w-full flex flex-col justify-end h-40">
                       <div
-                        className="w-full bg-black"
+                        className={currentTheme.primary}
                         style={{ height: `${height}%` }}
                       />
                     </div>
                     <div className="text-xs mt-2 text-center">
                       {new Date(day.date).getDate()}일
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className={`text-xs ${currentTheme.accent}`}>
                       {day.total > 0 ? `${(day.total / 1000).toFixed(0)}k` : '-'}
                     </div>
                   </div>
@@ -364,7 +433,7 @@ export default function BudgetTracker() {
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-300">
+          <div className={`pt-6 border-t ${currentTheme.border}`}>
             <div className="flex justify-between items-center">
               <span className="text-lg font-medium">주간 총액</span>
               <span className="text-2xl font-bold">
@@ -379,12 +448,12 @@ export default function BudgetTracker() {
         <div className="p-4">
           <h2 className="text-xl font-medium mb-6">월간 통계</h2>
           
-          <div className="mb-6 p-4 border border-gray-300">
+          <div className={`mb-6 p-4 border ${currentTheme.border} ${currentTheme.card}`}>
             <div className="flex justify-between mb-2">
-              <span className="text-gray-600">총 지출</span>
+              <span className={currentTheme.accent}>총 지출</span>
               <span className="text-xl font-bold">{monthData.total.toLocaleString()}원</span>
             </div>
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className={`flex justify-between text-sm ${currentTheme.accent}`}>
               <span>기록된 날</span>
               <span>{monthData.days}일</span>
             </div>
@@ -404,18 +473,66 @@ export default function BudgetTracker() {
                         <span>{category}</span>
                         <span className="font-medium">{amount.toLocaleString()}원</span>
                       </div>
-                      <div className="w-full h-2 bg-gray-200">
+                      <div className={`w-full h-2 ${currentTheme.secondary}`}>
                         <div
-                          className="h-full bg-black"
+                          className={currentTheme.primary}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 text-right">
+                      <div className={`text-xs ${currentTheme.accent} mt-1 text-right`}>
                         {percentage.toFixed(1)}%
                       </div>
                     </div>
                   );
                 })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'settings' && (
+        <div className="p-4">
+          <h2 className="text-2xl font-bold mb-6">설정</h2>
+          
+          <div className="mb-8">
+            <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <Palette size={20} />
+              테마
+            </h3>
+            <div className="space-y-2">
+              {Object.entries(THEMES).map(([key, t]) => (
+                <button
+                  key={key}
+                  onClick={() => setTheme(key)}
+                  className={`w-full p-4 border ${currentTheme.border} ${currentTheme.card} text-left transition-all ${
+                    theme === key ? `ring-2 ${currentTheme.accent}` : ''
+                  }`}
+                >
+                  <div className="font-medium">{t.name}</div>
+                  <div className="flex gap-2 mt-2">
+                    <div className={`w-6 h-6 rounded ${t.bg} border`}></div>
+                    <div className={`w-6 h-6 rounded ${t.primary}`}></div>
+                    <div className={`w-6 h-6 rounded ${t.secondary}`}></div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h3 className="text-lg font-medium mb-4">글꼴</h3>
+            <div className="space-y-2">
+              {FONTS.map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setFont(f.value)}
+                  className={`w-full p-4 border ${currentTheme.border} ${currentTheme.card} text-left ${f.value} transition-all ${
+                    font === f.value ? `ring-2 ${currentTheme.accent}` : ''
+                  }`}
+                >
+                  {f.name}
+                </button>
+              ))}
             </div>
           </div>
         </div>
