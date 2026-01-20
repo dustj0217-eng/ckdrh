@@ -2,18 +2,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Tag, Settings, ShoppingBag, Coffee, Bus, Film, Home, Package, Lock, LogOut, Cloud } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
-// Window storage API 타입 정의
-declare global {
-  interface Window {
-    storage: {
-      get: (key: string, shared?: boolean) => Promise<{ key: string; value: string; shared: boolean } | null>;
-      set: (key: string, value: string, shared?: boolean) => Promise<{ key: string; value: string; shared: boolean } | null>;
-      delete: (key: string, shared?: boolean) => Promise<{ key: string; deleted: boolean; shared: boolean } | null>;
-      list: (prefix?: string, shared?: boolean) => Promise<{ keys: string[]; prefix?: string; shared: boolean } | null>;
-    };
-  }
-}
+// Firebase 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyDpPett17WF-zpLK4rLzx1cKC5je3Bh6UE",
+  authDomain: "money-49d6c.firebaseapp.com",
+  projectId: "money-49d6c",
+  storageBucket: "money-49d6c.firebasestorage.app",
+  messagingSenderId: "173856684584",
+  appId: "1:173856684584:web:4fca57d6ca185eec2e531d",
+  measurementId: "G-YH5NCKHWXV"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 interface Item {
   id: number;
@@ -151,53 +155,35 @@ export default function BudgetTracker() {
   const [theme, setTheme] = useState('modern');
   const [font, setFont] = useState('font-sans');
 
-  // 클라우드에서 데이터 로드
+  // Firebase에서 데이터 로드
   const loadFromCloud = async (pin: string) => {
     try {
       setSyncStatus('syncing');
-      const result = await window.storage.get(`budget:${pin}`);
-      if (result && result.value) {
-        const cloudData = JSON.parse(result.value);
+      const docRef = doc(db, 'budgets', pin);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const cloudData = docSnap.data();
         setData(cloudData.data || []);
         setAllTags(cloudData.allTags || []);
         setTheme(cloudData.theme || 'modern');
         setFont(cloudData.font || 'font-sans');
-      } else {
-        // 신규 사용자: 초기 데이터 저장
-        const initialData = { data: [], allTags: [], theme: 'modern', font: 'font-sans' };
-        await window.storage.set(`budget:${pin}`, JSON.stringify(initialData));
-        setData([]);
-        setAllTags([]);
-        setTheme('modern');
-        setFont('font-sans');
       }
       setSyncStatus('synced');
       return true;
     } catch (error) {
-      // 키가 없을 때도 신규 사용자로 처리
-      console.log('신규 사용자 생성:', error);
-      try {
-        const initialData = { data: [], allTags: [], theme: 'modern', font: 'font-sans' };
-        await window.storage.set(`budget:${pin}`, JSON.stringify(initialData));
-        setData([]);
-        setAllTags([]);
-        setTheme('modern');
-        setFont('font-sans');
-        setSyncStatus('synced');
-        return true;
-      } catch (saveError) {
-        console.error('초기 저장 실패:', saveError);
-        setSyncStatus('error');
-        return false;
-      }
+      console.error('로드 실패:', error);
+      setSyncStatus('synced');
+      return true;
     }
   };
 
-  // 클라우드에 데이터 저장
+  // Firebase에 데이터 저장
   const saveToCloud = async (pin: string, dataToSave: any) => {
     try {
       setSyncStatus('syncing');
-      await window.storage.set(`budget:${pin}`, JSON.stringify(dataToSave));
+      const docRef = doc(db, 'budgets', pin);
+      await setDoc(docRef, dataToSave);
       setSyncStatus('synced');
     } catch (error) {
       console.error('저장 실패:', error);
@@ -761,13 +747,13 @@ export default function BudgetTracker() {
               <div className="text-sm">
                 <div className="font-semibold mb-2 flex items-center gap-2">
                   <Cloud size={16} />
-                  클라우드에 저장된 데이터
+                  Firebase 클라우드 동기화
                 </div>
                 <div className={currentTheme.accent}>
                   • 총 {data.length}일의 기록<br/>
                   • {data.reduce((sum, d) => sum + d.items.length, 0)}개의 지출 항목<br/>
                   • {allTags.length}개의 태그<br/>
-                  • 모든 기기에서 자동 동기화
+                  • 모든 기기에서 자동 동기화 ✨
                 </div>
               </div>
             </div>
