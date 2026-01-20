@@ -1,26 +1,28 @@
 import { DayData } from '@/lib/types';
 
-function parseLocalDate(dateStr: string) {
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// YYYY-MM-DD → 절대 day index (UTC 기준, 타임존 영향 없음)
+function toDayIndex(dateStr: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  return Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
 }
 
-function formatLocalDate(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+// day index → YYYY-MM-DD
+function fromDayIndex(idx: number) {
+  const date = new Date(idx * DAY_MS);
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
 export function useWeeklyStats(data: DayData[], selectedDate: string) {
-  const base = parseLocalDate(selectedDate);
-  const dates: string[] = [];
+  const baseIdx = toDayIndex(selectedDate);
 
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(base);
-    d.setDate(base.getDate() - i);
-    dates.push(formatLocalDate(d));
-  }
+  const dates = Array.from({ length: 7 }, (_, i) =>
+    fromDayIndex(baseIdx - (6 - i))
+  );
 
   return dates.map(date => {
     const day = data.find(d => d.date === date);

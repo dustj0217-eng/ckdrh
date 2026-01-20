@@ -3,9 +3,23 @@
 import { THEMES } from '@/lib/constants';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';
 
+function parseLocalDate(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function todayStr() {
+  const t = new Date();
+  const y = t.getFullYear();
+  const m = String(t.getMonth() + 1).padStart(2, '0');
+  const d = String(t.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function WeekView({ data, selectedDate, theme }: any) {
   const currentTheme = THEMES[theme];
   const weekData = useWeeklyStats(data, selectedDate);
+  const today = todayStr();
 
   return (
     <div className="p-4 space-y-6">
@@ -27,9 +41,8 @@ export default function WeekView({ data, selectedDate, theme }: any) {
         `}
       >
         {weekData.map(day => {
-          const dateObj = new Date(day.date);
-          const isToday =
-            new Date().toDateString() === dateObj.toDateString();
+          const dateObj = parseLocalDate(day.date);
+          const isToday = day.date === today;
 
           return (
             <div
@@ -50,13 +63,13 @@ export default function WeekView({ data, selectedDate, theme }: any) {
               <div className="space-y-1">
                 <div className="text-[11px] text-red-500">
                   {day.total < 0
-                    ? `${Math.abs(day.total).toLocaleString()}`
+                    ? Math.abs(day.total).toLocaleString()
                     : ''}
                 </div>
 
                 <div className="text-[11px] text-blue-500">
                   {day.total > 0
-                    ? `${day.total.toLocaleString()}`
+                    ? day.total.toLocaleString()
                     : ''}
                 </div>
               </div>
