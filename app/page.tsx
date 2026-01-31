@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client"
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings, Cloud } from 'lucide-react';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { THEMES } from '@/lib/constants';
@@ -17,6 +17,16 @@ export default function BudgetTracker() {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('budgetKey');
+    if (savedKey) {
+      const pin = savedKey.split('_')[0];
+      setUserKey(savedKey);
+      setDisplayPin(pin);
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   const {
     data,
