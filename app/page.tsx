@@ -21,10 +21,12 @@ export default function BudgetTracker() {
   useEffect(() => {
     const savedKey = localStorage.getItem('budgetKey');
     if (savedKey) {
+      setIsLoading(true);
       const pin = savedKey.split('_')[0];
       setUserKey(savedKey);
       setDisplayPin(pin);
       setIsLoggedIn(true);
+      loadFromCloud(savedKey).finally(() => setIsLoading(false));
     }
   }, []);
 
