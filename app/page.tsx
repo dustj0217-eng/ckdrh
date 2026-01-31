@@ -84,6 +84,7 @@ export default function BudgetTracker() {
         <div className="flex">
           {[
             { key: 'daily', label: '오늘' },
+            { key: 'calendar', label: '달력' },
             { key: 'week', label: '주간' },
             { key: 'month', label: '월간' },
             { key: 'settings', label: <Settings size={18} /> }
@@ -91,7 +92,7 @@ export default function BudgetTracker() {
             <button
               key={tab.key}
               onClick={() => setCurrentView(tab.key)}
-              className={`flex-1 py-4 text-sm transition-all duration-200 ${
+              className={`flex-1 py-4 text-sm transition-all duration-200 flex items-center justify-center ${
                 currentView === tab.key
                   ? `border-b-2 ${currentTheme.primary.split(' ')[0].replace('bg-', 'border-')} font-medium`
                   : 'opacity-50 hover:opacity-75'

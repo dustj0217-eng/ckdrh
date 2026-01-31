@@ -35,8 +35,8 @@ export default function WeekView({ data, selectedDate, theme }: any) {
       {/* 캘린더 영역 */}
       <div
         className={`
-          grid grid-cols-7 gap-2
-          p-3 rounded-2xl
+          grid grid-cols-7
+          p-5 rounded-2xl
           ${currentTheme.card} border ${currentTheme.border}
         `}
       >
@@ -48,7 +48,7 @@ export default function WeekView({ data, selectedDate, theme }: any) {
             <div
               key={day.date}
               className={`
-                h-24 p-2 rounded-xl border
+                h-24 rounded-xl
                 flex flex-col justify-between
                 ${currentTheme.card}
                 ${isToday ? currentTheme.primary : ''}
